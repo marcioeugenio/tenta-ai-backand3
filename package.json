@@ -1,14 +1,14 @@
 {
   "name": "tenta-ai-backend",
   "version": "1.0.0",
-  "description": "Backend para o Tenta AI com integração ao PagSeguro",
+  "description": "Webhook PagSeguro com envio de código por e-mail",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "nodemailer": "^6.9.8"
+    "nodemailer": "^6.9.1",
+    "axios": "^1.6.8"
   }
 }
