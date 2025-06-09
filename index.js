@@ -1,50 +1,61 @@
-const express = require("express");
-const fs = require("fs");
-const enviarEmail = require("./email");
-require("dotenv").config();
-
+const express = require('express');
+const nodemailer = require('nodemailer');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 10000;
 
 app.use(express.json());
 
-app.post("/webhook/pagseguro", (req, res) => {
-  const pedido = req.body;
-  console.log("Requisição recebida:", pedido);
+app.post('/webhook/pagseguro', (req, res) => {
+  console.log('✅ Webhook recebido!');
+  console.log('📦 Corpo da requisição:', req.body);
 
-  const pedidos = JSON.parse(fs.readFileSync("pedidos.json", "utf8"));
-  pedidos.push(pedido);
-  fs.writeFileSync("pedidos.json", JSON.stringify(pedidos, null, 2));
+  const email = req.body.email;
+  const valorPago = req.body.valor;
 
-  let plano = "DESCONHECIDO";
-  let mensagem = "Pagamento recebido.";
-
-  if (pedido.valor === 4990) {
-    plano = "BÁSICO";
-    mensagem = "Acesso ao plano BÁSICO liberado automaticamente.";
-  } else if (pedido.valor === 9990) {
-    plano = "COMPLETO";
-    mensagem = "Acesso ao plano COMPLETO liberado automaticamente.";
+  if (!email || !valorPago) {
+    console.log('❌ Campos "email" ou "valor" ausentes.');
+    return res.status(400).send('Campos ausentes');
   }
 
-  enviarEmail(
-    `Venda: Plano ${plano}`,
-    `Nova venda confirmada.
+  const pacoteBasic = parseInt(process.env.PACKAGE_BASIC || '1000');
+  const pacoteFull = parseInt(process.env.PACKAGE_FULL || '2000');
+  let codigo = '';
 
-Cliente: ${pedido.email}
-Plano: ${plano}
-Valor: R$${(pedido.valor / 100).toFixed(2)}
+  if (valorPago >= pacoteFull) {
+    codigo = 'FULL-XYZ-123';
+  } else if (valorPago >= pacoteBasic) {
+    codigo = 'BASIC-ABC-789';
+  } else {
+    console.log('⚠️ Valor abaixo do mínimo. Nenhum pacote liberado.');
+    return res.status(200).send('Valor abaixo do mínimo.');
+  }
 
-Acesso liberado.`
-  );
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
 
-  res.json({ plano, acessoLiberado: true, mensagem });
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: '🔐 Seu código de acesso ao Tenta AI',
+    text: `Olá! Seu código de acesso é: ${codigo}`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log('❌ Erro ao enviar e-mail:', error);
+    } else {
+      console.log('✅ E-mail enviado com sucesso:', info.response);
+    }
+  });
+
+  res.status(200).send('OK');
 });
 
-app.get("/", (req, res) => {
-  res.send("Servidor funcionando!");
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+app.listen(port, () => {
+  console.log(`🚀 Servidor rodando na porta ${port}`);
 });
