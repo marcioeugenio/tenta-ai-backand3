@@ -6,7 +6,9 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 10000;
 
+// Middleware para ler JSON e x-www-form-urlencoded
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Dados fixos da conta PagSeguro
 const PAGSEGURO_EMAIL = "ideiasempresariais@hotmail.com";
