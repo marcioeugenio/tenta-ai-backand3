@@ -6,11 +6,9 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 10000;
 
-// Middleware para ler JSON e x-www-form-urlencoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Dados fixos da conta PagSeguro
 const PAGSEGURO_EMAIL = "ideiasempresariais@hotmail.com";
 const PAGSEGURO_TOKEN = process.env.PAGSEGURO_TOKEN;
 
@@ -25,10 +23,15 @@ app.post('/webhook/pagseguro', async (req, res) => {
     return res.status(400).send("notificationCode ausente");
   }
 
-  const url = `https://ws.pagseguro.uol.com.br/v3/transactions/notifications/${notificationCode}?email=${PAGSEGURO_EMAIL}&token=${PAGSEGURO_TOKEN}`;
+  const url = `https://ws.pagseguro.uol.com.br/v2/transactions/notifications/${notificationCode}?email=${PAGSEGURO_EMAIL}&token=${PAGSEGURO_TOKEN}`;
 
   try {
-    const response = await axios.get(url, { headers: { Accept: 'application/json' } });
+    const response = await axios.get(url, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
     const data = response.data;
 
     console.log("📬 Dados da transação recebidos:");
