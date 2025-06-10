@@ -33,30 +33,27 @@ app.post('/webhook/pagseguro', async (req, res) => {
     });
 
     const data = response.data;
-
     console.log("📬 Dados da transação recebidos:");
     console.log(data);
 
     const status = parseInt(data.status);
-    const valorPago = parseInt(data.grossAmount.replace('.', ''));
-    const email = data.sender.email;
+    const valorBruto = parseFloat(data.grossAmount.replace(',', '.'));
 
     if (status !== 3) {
       console.log("⚠️ Transação ainda não aprovada. Status:", status);
       return res.status(200).send("Transação ainda não aprovada");
     }
 
-    const pacoteBasic = parseInt(process.env.PACKAGE_BASIC || '1000');
-    const pacoteFull = parseInt(process.env.PACKAGE_FULL || '2000');
-    let codigo = '';
-
-    if (valorPago >= pacoteFull) {
-      codigo = 'FULL-XYZ-123';
-    } else if (valorPago >= pacoteBasic) {
-      codigo = 'BASIC-ABC-789';
+    let pacote = '';
+    if (valorBruto === 39.90) {
+      pacote = 'PLANO BÁSICO (R$39,90)';
+    } else if (valorBruto === 79.90) {
+      pacote = 'PLANO PICANTE (R$79,90)';
+    } else if (valorBruto === 49.90) {
+      pacote = 'UPGRADE (R$49,90)';
     } else {
-      console.log('⚠️ Valor abaixo do mínimo. Nenhum pacote liberado.');
-      return res.status(200).send('Valor abaixo do mínimo.');
+      console.log(`⚠️ Valor não corresponde a nenhum pacote conhecido: R$${valorBruto}`);
+      return res.status(200).send("Valor desconhecido");
     }
 
     const transporter = nodemailer.createTransport({
@@ -69,9 +66,9 @@ app.post('/webhook/pagseguro', async (req, res) => {
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: email,
-      subject: '🔐 Seu código de acesso ao Tenta AI',
-      text: `Olá! Seu código de acesso é: ${codigo}`,
+      to: 'ideiasempresariais@hotmail.com',
+      subject: `📢 Nova Venda: ${pacote}`,
+      text: `Uma nova venda foi confirmada: ${pacote}`,
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
